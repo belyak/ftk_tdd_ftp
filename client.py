@@ -3,9 +3,26 @@ import socket
 HOST = 'ftp.freebsd.org'
 PORT = 21
 
+CODE_INVALID_REPLY_FORMAT = -1
+
+class TextSocket(socket.socket):
+    def sendall(self, text):
+        return super().sendall(text.encode('utf-8'))
+    
+    def recv(self, length):
+        data = super().recv(length)
+        return data.decode('utf-8')
+    
+class DataSocket(socket.socket):
+    pass
+
+class InvalidReplyFormat(ValueError):
+    def __init__(self, reply):
+        super().__init__(reply)
+
 class Client():
     def __init__(self):
-        self.__s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__s = TextSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.__sp = None
         self.__server_host, self.__server_port = None, None
         self.__passive_host = self.__passive_post = self.__passive_mode = False
@@ -23,9 +40,12 @@ class Client():
         >>> Client._get_code_and_rest('200 Status is OK')
         (200, 'Status is OK')
         """
-        code = int(line[:3])
-        vars()
-        rest = line[4:].strip('\n\r')
+        try:
+            code = int(line[:3])
+            rest = line[4:].strip('\n\r')
+        except ValueError:
+            msg = 'Invalid reply format: `%s`' % line
+            raise InvalidReplyFormat(msg)
         return code, rest  
         
 
@@ -43,7 +63,7 @@ class Client():
     
     def _command_with_transfer(self, text, upload=False):
         self.passive_mode()
-        self.__s.sendall('LIST\n')       
+        self.__s.sendall('%s\n' % text)       
         data = self.__recv_data()
         print(data)
         line = self.__s.recv(1024)
@@ -88,7 +108,7 @@ class Client():
     
     def _sp_connect(self):
         try:
-            self.__sp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.__sp = DataSocket(socket.AF_INET, socket.SOCK_STREAM)
             self.__sp.connect((self.__passive_host, self.__passive_port))
             print('connected data link')        
         except socket.error as e:
