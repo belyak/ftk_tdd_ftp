@@ -5,27 +5,31 @@ PORT = 21
 
 CODE_INVALID_REPLY_FORMAT = -1
 
+
 class TextSocket(socket.socket):
     def sendall(self, text):
         return super().sendall(text.encode('utf-8'))
-    
+
     def recv(self, length):
         data = super().recv(length)
         return data.decode('utf-8')
-    
+
+
 class DataSocket(socket.socket):
     pass
+
 
 class InvalidReplyFormat(ValueError):
     def __init__(self, reply):
         super().__init__(reply)
+
 
 class Client():
     def __init__(self):
         self.__s = TextSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.__sp = None
         self.__server_host, self.__server_port = None, None
-        self.__passive_host = self.__passive_post = self.__passive_mode = False
+        self.__passive_host = self.__passive_port = self.__passive_mode = False
 
     def connect(self, host, port):
         self.__s.connect((HOST, PORT))
@@ -34,43 +38,37 @@ class Client():
         print(code, data)
 
     @staticmethod
-    def _get_code_and_rest(line):
+    def get_code_and_text(reply):
         """
-        >>> c = Client()
-        >>> Client._get_code_and_rest('200 Status is OK')
-        (200, 'Status is OK')
+        Разделяет ответ сервера на числовой код и текст (который может состоять как из одной строки, так и из нескольких
         """
         try:
-            code = int(line[:3])
-            rest = line[4:].strip('\n\r')
+            code = int(reply[:3])
+            rest = reply[4:].strip('\n\r')
         except ValueError:
-            msg = 'Invalid reply format: `%s`' % line
+            msg = 'Invalid reply format: `%s`' % reply
             raise InvalidReplyFormat(msg)
         return code, rest  
-        
 
     def _command(self, text):
         """
         Runs command which does not require data connection (only control one is used)
-        :param text: command's text without trailing new line symbol
+        :param text: command' text without trailing new line symbol
         :returns: tuple of two elements: code and text
         :rtype: (int, str,)
         """
         if len(text):
             self.__s.sendall('%s\n' % text)
         reply = self.__s.recv(1024*1024)
-        return self._get_code_and_rest(reply)
+        return self.get_code_and_text(reply)
     
     def _command_with_transfer(self, text, upload=False):
         self.passive_mode()
         self.__s.sendall('%s\n' % text)       
         data = self.__recv_data()
-        print(data)
         line = self.__s.recv(1024)
-        code, rest = self._get_code_amd_rest(line)
-        print(code,  rest)        
-        return data    
-    
+        code, rest = self.get_code_and_text(line)
+        return code, rest, data
 
     def login(self, user, password):
         code, rest = self._command('USER %s' % user)
@@ -104,7 +102,7 @@ class Client():
             self.__sp.close()
             print('data link closed')
         except socket.error as e:
-            prinit('got error:', e)
+            print('got error:', e)
     
     def _sp_connect(self):
         try:
@@ -115,7 +113,7 @@ class Client():
             print('got error:', e)
             pass
 
-    def __send_data():
+    def __send_data(self):
         pass
     
     def __recv_data(self):
@@ -125,14 +123,20 @@ class Client():
         return data
         
     def lst(self):
-        self.passive_mode()
-        self.__s.sendall('LIST\n')       
-        data = self.__recv_data()
-        print(data)
-        line = self.__s.recv(1024)
-        code, rest = self._get_code_and_rest(line)
-        print(code,  rest)        
-        return data
+        # self.passive_mode()
+        # self.__s.sendall('LIST\n')
+        # data = self.__recv_data()
+        # print(data)
+        # line = self.__s.recv(1024)
+        # code, rest = self._get_code_and_rest(line)
+        # print(code,  rest)
+        # return data
+        code, rest, data = self._command_with_transfer('LIST')
+        if code == 200:
+            print(data)
+        else:
+            print(code, rest)
+            print(data)
 
 if __name__ == '__main__':        
     #ftp = ftplib.FTP(host=HOST, user='ftp', passwd='aa@mm.com', acct='')
