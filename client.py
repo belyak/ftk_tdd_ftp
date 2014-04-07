@@ -63,6 +63,13 @@ class Client():
         return self.get_code_and_text(reply)
     
     def _command_with_transfer(self, text, upload=False):
+        """
+        Выполняет команду, предусматривающую передачу данных по каналу данных
+        :type text: str
+        :param text: текст команды
+        :type upload: bool
+        :param upload: направление передачи, True - на сервер, False - на клиент.
+        """
         self.passive_mode()
         self.__s.sendall('%s\n' % text)       
         data = self.__recv_data()
@@ -71,6 +78,13 @@ class Client():
         return code, rest, data
 
     def login(self, user, password):
+        """
+        Авторизация пользователя на сервере
+        :type user: str
+        :param user: имя пользователя
+        :type password: str
+        :param password: пароль
+        """
         code, rest = self._command('USER %s' % user)
         print(code, rest)
         code, rest = self._command('PASS %s' % password)
@@ -79,9 +93,9 @@ class Client():
     def passive_mode(self):
         code, rest = self._command('PASV')
         print(code, rest)
-        addr_str = rest.split(' ')[-1]
-        print('DEBUG: adr str: `%s`' % addr_str)
-        h1, h2, h3, h4, p1, p2 = addr_str.strip('()').split(',')
+        address_str = rest.split(' ')[-1]
+        print('DEBUG: adr str: `%s`' % address_str)
+        h1, h2, h3, h4, p1, p2 = address_str.strip('()').split(',')
         self.__passive_host = '.'.join([h1, h2, h3, h4])
         self.__passive_port = int(p1)*256 + int(p2)
         print('telnet %s %s' % (self.__passive_host, self.__passive_port))
@@ -123,14 +137,6 @@ class Client():
         return data
         
     def lst(self):
-        # self.passive_mode()
-        # self.__s.sendall('LIST\n')
-        # data = self.__recv_data()
-        # print(data)
-        # line = self.__s.recv(1024)
-        # code, rest = self._get_code_and_rest(line)
-        # print(code,  rest)
-        # return data
         code, rest, data = self._command_with_transfer('LIST')
         if code == 200:
             print(data)

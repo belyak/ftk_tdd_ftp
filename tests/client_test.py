@@ -50,8 +50,6 @@ class TestClient(TestCase):
             ]
         )
 
-
-
     @patch('client.TextSocket', new=EchoSocket)
     def test_command(self):
         client = Client()
