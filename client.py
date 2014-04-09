@@ -5,6 +5,9 @@ PORT = 21
 
 CODE_INVALID_REPLY_FORMAT = -1
 
+LINES_SEPARATOR = b'\r\n'
+LINES_SEPARATOR_STR = LINES_SEPARATOR.decode()
+
 
 class Socket(socket.socket):
     pass
@@ -38,7 +41,7 @@ class Client():
 
         try:
             text_reply = reply.decode()
-            lines = text_reply.split('\n\r')
+            lines = text_reply.split(LINES_SEPARATOR_STR)
             del lines[-1]
         except UnicodeDecodeError:
             raise InvalidReplyFormat(reply)
@@ -47,7 +50,7 @@ class Client():
             # однострочный ответ
             try:
                 code = int(reply[:3])
-                rest = reply[4:].decode().strip('\n\r')
+                rest = reply[4:].decode().strip(LINES_SEPARATOR_STR)
             except ValueError:
                 msg = 'Invalid reply format: `%s`' % reply
                 raise InvalidReplyFormat(msg)
@@ -65,7 +68,7 @@ class Client():
             lines[0] = lines[0][4:]
             lines[-1] = lines[-1][4:]
 
-            rest = '\n\r'.join(lines)
+            rest = LINES_SEPARATOR_STR.join(lines)
             return code_one, rest
         else:
             raise InvalidReplyFormat('Incorrect reply `%s`' % text_reply)
@@ -78,7 +81,7 @@ class Client():
         :rtype: (int, str,)
         """
         if len(text):
-            self.__s.sendall(text.encode() + b'\n\r')
+            self.__s.sendall(text.encode() + b'\r\n')
         reply = self.__receive_all(self.__s)
         return self.get_code_and_text(reply)
     
@@ -91,7 +94,7 @@ class Client():
         :param upload: направление передачи, True - на сервер, False - на клиент.
         """
         self.passive_mode()
-        self.__s.sendall('%s\n' % text)       
+        self.__s.sendall('%s\r\n' % text)
         data = self.__receive_data()
         line = self.__s.recv(1024)
         code, rest = self.get_code_and_text(line)
@@ -157,11 +160,11 @@ class Client():
 
         :type socket_object: socket.socket
         """
-        all_data = b''
-        data = socket_object.recv(1024)
-        while len(data):
+        portion_size = 1024
+        all_data = data = socket_object.recv(portion_size)
+        while len(data) == portion_size:
             all_data += data
-            data = socket_object.recv(1024)
+            data = socket_object.recv(portion_size)
         return all_data
 
     def __receive_data(self):
