@@ -7,6 +7,9 @@ SIMPLE_MSG_1 = b"150 Opening ASCII mode data connection for '/bin/ls'.\r\n"
 SIMPLE_MSG_2 = b"226 Transfer complete.\r\n"
 TWO_SIMPLE_MESSAGES = SIMPLE_MSG_1 + SIMPLE_MSG_2
 
+MULTI_LINE_MESSAGE_1 = b'123-First line\r\nSecond line\r\n  234 A line beginning with numbers\r\n123 The last line\r\n'
+THREE_MESSAGES = SIMPLE_MSG_1 + MULTI_LINE_MESSAGE_1 + SIMPLE_MSG_2
+
 
 class FakeReceiveSocket():
     """
@@ -53,6 +56,7 @@ class TestMessageReader(TestCase):
     def test_simple_read(self):
         fake_socket = FakeReceiveSocket(TWO_SIMPLE_MESSAGES)
 
+        # noinspection PyTypeChecker
         message_reader = MessageReader(socket_object=fake_socket)
 
         message_1 = message_reader.read()
@@ -60,3 +64,18 @@ class TestMessageReader(TestCase):
 
         message_2 = message_reader.read()
         self.assertEqual(message_2, SIMPLE_MSG_2)
+
+    def test_multi_line_read(self):
+        fake_socket = FakeReceiveSocket(THREE_MESSAGES)
+
+        # noinspection PyTypeChecker
+        message_reader = MessageReader(socket_object=fake_socket)
+
+        message_1 = message_reader.read()
+        self.assertEqual(message_1, SIMPLE_MSG_1)
+
+        message_2 = message_reader.read()
+        self.assertEqual(message_2, MULTI_LINE_MESSAGE_1)
+
+        message_3 = message_reader.read()
+        self.assertEqual(message_3, SIMPLE_MSG_2)
