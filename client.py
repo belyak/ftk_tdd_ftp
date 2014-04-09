@@ -72,7 +72,7 @@ class Client():
         """
         self.passive_mode()
         self.__s.sendall('%s\n' % text)       
-        data = self.__recv_data()
+        data = self.__receive_data()
         line = self.__s.recv(1024)
         code, rest = self.get_code_and_text(line)
         return code, rest, data
@@ -130,7 +130,7 @@ class Client():
     def __send_data(self):
         pass
     
-    def __recv_data(self):
+    def __receive_data(self):
         self._sp_connect()
         data = self.__sp.recv(1024*1024)
         self._sp_disconnect()
@@ -145,10 +145,6 @@ class Client():
             print(data)
 
 if __name__ == '__main__':        
-    #ftp = ftplib.FTP(host=HOST, user='ftp', passwd='aa@mm.com', acct='')
-    #result = ftp.dir()
-    #print(result)
-
 
     c = Client()
     c.connect(HOST, PORT)
