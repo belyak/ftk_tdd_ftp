@@ -19,7 +19,7 @@ class EchoSocket():
 
 class TestClient(TestCase):
     def test_get_code_and_text_one_line(self):
-        reply = b'200 Command okay.'
+        reply = b'200 Command okay.\n\r'
         expected_code = 200
         expected_line = 'Command okay.'
 
@@ -30,17 +30,17 @@ class TestClient(TestCase):
 
     def test_get_code_and_text_multi_lines(self):
 
-        reply = '\n'.join(
+        reply = '\n\r'.join(
             [
                 '123-First line',
                 'Second line',
-                '  234 A line beginning with numbers',
-                '123 The last line'
+                '234 A line beginning with numbers',
+                '123 The last line\n\r'
             ]
         ).encode()
 
         expected_code = 123
-        expected_text = '\n'.join(
+        expected_text = '\n\r'.join(
             [
 
                 'First line',

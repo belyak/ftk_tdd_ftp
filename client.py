@@ -6,16 +6,7 @@ PORT = 21
 CODE_INVALID_REPLY_FORMAT = -1
 
 
-class TextSocket(socket.socket):
-    def sendall(self, text):
-        return super().sendall(text.encode('utf-8'))
-
-    def recv(self, length):
-        data = super().recv(length)
-        return data.decode('utf-8')
-
-
-class DataSocket(socket.socket):
+class Socket(socket.socket):
     pass
 
 
@@ -26,8 +17,9 @@ class InvalidReplyFormat(ValueError):
 
 class Client():
     def __init__(self):
-        self.__s = TextSocket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__s = Socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__sp = None
+        """:type: socket.socket"""
         self.__server_host, self.__server_port = None, None
         self.__passive_host = self.__passive_port = self.__passive_mode = False
 
@@ -41,14 +33,42 @@ class Client():
     def get_code_and_text(reply):
         """
         Разделяет ответ сервера на числовой код и текст (который может состоять как из одной строки, так и из нескольких
+        :type reply: bytes
         """
+
         try:
-            code = int(reply[:3])
-            rest = reply[4:].strip('\n\r')
-        except ValueError:
-            msg = 'Invalid reply format: `%s`' % reply
-            raise InvalidReplyFormat(msg)
-        return code, rest  
+            text_reply = reply.decode()
+            lines = text_reply.split('\n\r')
+            del lines[-1]
+        except UnicodeDecodeError:
+            raise InvalidReplyFormat(reply)
+
+        if len(lines) == 1:
+            # однострочный ответ
+            try:
+                code = int(reply[:3])
+                rest = reply[4:].decode().strip('\n\r')
+            except ValueError:
+                msg = 'Invalid reply format: `%s`' % reply
+                raise InvalidReplyFormat(msg)
+            return code, rest
+        elif len(lines) > 1:
+            # многострочный ответ
+            try:
+                code_one = int(lines[0][:3])
+                code_two = int(lines[-1][:3])
+                if code_one != code_two:
+                    raise InvalidReplyFormat('Code %d != code %d' % (code_one, code_two))
+            except ValueError:
+                raise InvalidReplyFormat(reply)
+
+            lines[0] = lines[0][4:]
+            lines[-1] = lines[-1][4:]
+
+            rest = '\n\r'.join(lines)
+            return code_one, rest
+        else:
+            raise InvalidReplyFormat('Incorrect reply `%s`' % text_reply)
 
     def _command(self, text):
         """
@@ -58,8 +78,8 @@ class Client():
         :rtype: (int, str,)
         """
         if len(text):
-            self.__s.sendall('%s\n' % text)
-        reply = self.__s.recv(1024*1024)
+            self.__s.sendall(text.encode() + b'\n\r')
+        reply = self.__receive_all(self.__s)
         return self.get_code_and_text(reply)
     
     def _command_with_transfer(self, text, upload=False):
@@ -120,7 +140,7 @@ class Client():
     
     def _sp_connect(self):
         try:
-            self.__sp = DataSocket(socket.AF_INET, socket.SOCK_STREAM)
+            self.__sp = Socket(socket.AF_INET, socket.SOCK_STREAM)
             self.__sp.connect((self.__passive_host, self.__passive_port))
             print('connected data link')        
         except socket.error as e:
@@ -129,10 +149,24 @@ class Client():
 
     def __send_data(self):
         pass
-    
+
+    @staticmethod
+    def __receive_all(socket_object):
+        """
+        Получает все данные из сокета, считывая из буфера по 1 килобайту.
+
+        :type socket_object: socket.socket
+        """
+        all_data = b''
+        data = socket_object.recv(1024)
+        while len(data):
+            all_data += data
+            data = socket_object.recv(1024)
+        return all_data
+
     def __receive_data(self):
         self._sp_connect()
-        data = self.__sp.recv(1024*1024)
+        data = self.__receive_all(self.__sp)
         self._sp_disconnect()
         return data
         
