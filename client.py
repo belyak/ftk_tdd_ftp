@@ -1,12 +1,11 @@
 import socket
+from line_separator import LINES_SEPARATOR, LINES_SEPARATOR_STR
+from message_reader import MessageReader
 
 HOST = 'ftp.freebsd.org'
 PORT = 21
 
 CODE_INVALID_REPLY_FORMAT = -1
-
-LINES_SEPARATOR = b'\r\n'
-LINES_SEPARATOR_STR = LINES_SEPARATOR.decode()
 
 
 class Socket(socket.socket):
@@ -23,8 +22,13 @@ class Client():
         self.__s = Socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__sp = None
         """:type: socket.socket"""
+        self.__reader = MessageReader(socket_object=self.__s)
         self.__server_host, self.__server_port = None, None
         self.__passive_host = self.__passive_port = self.__passive_mode = False
+
+    def __read_code_and_text(self):
+        raw_message = self.__reader.read()
+        return self.get_code_and_text(raw_message)
 
     def connect(self, host, port):
         self.__s.connect((HOST, PORT))
@@ -81,7 +85,7 @@ class Client():
         :rtype: (int, str,)
         """
         if len(text):
-            self.__s.sendall(text.encode() + b'\r\n')
+            self.__s.sendall(text.encode() + LINES_SEPARATOR)
         reply = self.__receive_all(self.__s)
         return self.get_code_and_text(reply)
     
@@ -94,10 +98,12 @@ class Client():
         :param upload: направление передачи, True - на сервер, False - на клиент.
         """
         self.passive_mode()
-        self.__s.sendall('%s\r\n' % text)
+        self.__s.sendall(text.encode() + LINES_SEPARATOR)
+        self._sp_connect()
+        c1, l1 = self.__read_code_and_text()
         data = self.__receive_data()
-        line = self.__s.recv(1024)
-        code, rest = self.get_code_and_text(line)
+        self._sp_disconnect()
+        code, rest = self.__read_code_and_text()
         return code, rest, data
 
     def login(self, user, password):
@@ -168,9 +174,7 @@ class Client():
         return all_data
 
     def __receive_data(self):
-        self._sp_connect()
         data = self.__receive_all(self.__sp)
-        self._sp_disconnect()
         return data
         
     def lst(self):
@@ -187,7 +191,6 @@ if __name__ == '__main__':
     c.connect(HOST, PORT)
     c.login('ftp', 'aa@mm.com')
     c.pwd()
-    c.passive_mode()
     c.lst()
     c.lst()
     c.lst()

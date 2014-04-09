@@ -1,4 +1,4 @@
-from client import LINES_SEPARATOR
+from line_separator import LINES_SEPARATOR
 
 
 class MessageReader():

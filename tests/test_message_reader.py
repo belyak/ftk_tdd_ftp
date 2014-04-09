@@ -1,6 +1,5 @@
 from unittest import TestCase
 
-from client import LINES_SEPARATOR
 from message_reader import MessageReader
 
 SIMPLE_MSG_1 = b"150 Opening ASCII mode data connection for '/bin/ls'.\r\n"

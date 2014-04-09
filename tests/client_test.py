@@ -1,7 +1,8 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from client import Client, InvalidReplyFormat, LINES_SEPARATOR, LINES_SEPARATOR_STR
+from client import Client, InvalidReplyFormat
+from line_separator import LINES_SEPARATOR, LINES_SEPARATOR_STR
 
 
 class EchoSocket():
