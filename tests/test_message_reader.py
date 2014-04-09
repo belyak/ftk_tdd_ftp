@@ -1,5 +1,12 @@
 from unittest import TestCase
 
+from client import LINES_SEPARATOR
+from message_reader import MessageReader
+
+SIMPLE_MSG_1 = b"150 Opening ASCII mode data connection for '/bin/ls'.\r\n"
+SIMPLE_MSG_2 = b"226 Transfer complete.\r\n"
+TWO_SIMPLE_MESSAGES = SIMPLE_MSG_1 + SIMPLE_MSG_2
+
 
 class FakeReceiveSocket():
     """
@@ -23,11 +30,11 @@ class FakeReceiveSocket():
 class FakeReceiveSocketTest(TestCase):
     """
     Элементарный тест для поддельного объекта.
-    Создает поддельный объект и, читая из него данные различными порциями, сравнивает полученные данные и ланные,
+    Создает поддельный объект и, читая из него данные различными порциями, сравнивает полученные данные и данные,
     переданные поддельному объекту при инициализации.
     """
     def test_recv(self):
-        original_data = b"150 Opening ASCII mode data connection for '/bin/ls'.\r\n226 Transfer complete.\r\n"
+        original_data = TWO_SIMPLE_MESSAGES
 
         for portion_size in range(1, len(original_data)):
 
@@ -41,7 +48,15 @@ class FakeReceiveSocketTest(TestCase):
 
             self.assertEqual(original_data, received_data)
 
-#
-# class TestMessageReader(TestCase):
-#     def test_read(self):
-#         self.fail()
+
+class TestMessageReader(TestCase):
+    def test_simple_read(self):
+        fake_socket = FakeReceiveSocket(TWO_SIMPLE_MESSAGES)
+
+        message_reader = MessageReader(socket_object=fake_socket)
+
+        message_1 = message_reader.read()
+        self.assertEqual(message_1, SIMPLE_MSG_1)
+
+        message_2 = message_reader.read()
+        self.assertEqual(message_2, SIMPLE_MSG_2)
