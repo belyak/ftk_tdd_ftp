@@ -65,3 +65,4 @@ class TestClient(TestCase):
         self.assertEqual(rest, 'Two hundreds OK')
         # noinspection PyProtectedMember
         self.assertRaises(InvalidReplyFormat, client._command, '')
+
