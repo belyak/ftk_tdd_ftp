@@ -86,7 +86,7 @@ class Client():
         """
         if len(text):
             self.__s.sendall(text.encode() + LINES_SEPARATOR)
-        reply = self.__receive_all(self.__s)
+        reply = self.receive_all(self.__s)
         return self.get_code_and_text(reply)
     
     def _command_with_transfer(self, text, upload=False):
@@ -160,7 +160,7 @@ class Client():
         pass
 
     @staticmethod
-    def __receive_all(socket_object):
+    def receive_all(socket_object):
         """
         Получает все данные из сокета, считывая из буфера по 1 килобайту.
 
@@ -174,7 +174,7 @@ class Client():
         return all_data
 
     def __receive_data(self):
-        data = self.__receive_all(self.__sp)
+        data = self.receive_all(self.__sp)
         return data
         
     def lst(self):
