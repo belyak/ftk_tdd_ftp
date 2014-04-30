@@ -4,7 +4,132 @@ import socket
 from threading import Thread
 
 
-class DTPServer():
+class NotBoundError(Exception):
+    pass
+
+
+class BoundServer():
+    """
+    сервер, умеющий биндиться на указанный диапазон портов.
+    """
+    def __init__(self, host='127.0.0.1', port_from=40000, port_to=50000, auto_bind=True):
+        self._socket = socket.socket()
+        self._host = host
+        self._bind_ports = (port_from, port_to)
+
+        if auto_bind:
+            self._port = self._bind_socket(port_from, port_to)
+        else:
+            self._port = None
+
+        self._process = Thread(target=self._accept_communicate_and_close)
+
+    def _accept_communicate_and_close(self):
+        """
+        логика выполняемая после старта сервера в отдельной нити
+        """
+        self._socket.listen(1)
+        client_socket, _ = self._socket.accept()
+
+        self._communicate(client_socket)
+
+        client_socket.close()
+
+    def _communicate(self, client_socket):
+        """
+        Логика работы с сокетом
+        :type client_socket: socket.socket
+        """
+        raise NotImplementedError
+
+    def bind_socket(self):
+        self._port = self._bind_socket(*self._bind_ports)
+
+    def _bind_socket(self, port_from, port_to):
+        """
+        Пытается забиндить сокет self._socket в указанном диапазоне на адрес self._host
+        """
+        is_bound = False
+        get_port = lambda: random.randint(port_from, port_to)
+        port = get_port()
+        while not is_bound:
+            try:
+                self._socket.bind((self._host, port))
+                is_bound = True
+            except socket.error as e:
+                port = get_port
+        return port
+
+    def passive_reply(self):
+        """
+        >>> class D():
+        ...     def __init__(self, host, port):
+        ...         self._host = host
+        ...         self._port = port
+        ...     def passive_reply(self):
+        ...         return BoundServer.passive_reply(self)
+        >>> d = D('193.162.146.4', 194*256+54)
+        >>> reply = d.passive_reply()
+        >>> assert reply[-2:] == chr(13)+chr(10)
+        >>> reply[:-2]
+        '227 Entering Passive Mode (193,162,146,4,194,54)'
+        """
+        if self._port is None:
+            raise NotBoundError()
+        else:
+            port = self._port
+            """:type: int"""
+
+        p1, p2, p3, p4 = map(int, self._host.split('.'))
+        p5, p6 = divmod(port, 256)
+
+        reply = '227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)\r\n' % (p1, p2, p3, p4, p5, p6)
+        return reply
+
+    def start(self):
+        """
+        запускает принятие соединений в новом процессе
+        """
+        self._process.start()
+
+    def join(self):
+        self._process.join()
+
+
+class TestBoundServer(TestCase):
+    def test_passive_reply_and_communicate(self):
+
+        request_len = 10
+
+        class SumServer(BoundServer):
+            def _communicate(self, client_socket):
+                data = client_socket.recv(request_len).decode()
+                operands = map(int, data.split('+'))
+                summary = str(sum(operands))
+                client_socket.sendall(summary.encode())
+
+        sum_server = SumServer(host='127.0.0.1')
+        passive_reply = sum_server.passive_reply()
+        h1, h2, h3, h4, p1, p2 = map(int, passive_reply[passive_reply.find('(') + 1:passive_reply.find(')')].split(','))
+
+        numbers = [2, 4, 1, 0]
+        expected_result = str(sum(numbers)).encode()
+        request = '+'.join(map(str, numbers))
+        while len(request) != request_len:
+            request += ' '
+
+        sum_server.start()
+        s = socket.socket()
+        s.connect((".".join(map(str, [h1, h2, h3, h4])), p1*256+p2))
+        s.sendall(request.encode())
+        result = s.recv(request_len)
+        sum_server.join()
+        s.close()
+
+        self.assertEqual(expected_result, result)
+
+
+class DTPServer(BoundServer):
     """
     Сервер принимающий соединение и, в зависимости от настроек, принимающий или отправляющий блок данных, после чего
     закрывающий соединение.
@@ -15,80 +140,34 @@ class DTPServer():
         :param send_mode: истина, если сервер отправляет данные и ложь если принимает.
         :type send_mode: bool
         """
-        if send_mode:
-            self.__data = data
-        else:
-            self.__data = data
+        super().__init__(host)
 
-        self.__received_data = b''
+        self._data = data
 
-        self.__send_mode = send_mode
-        self.__socket = socket.socket()
+        self._received_data = b''
 
-        self.__host = host
+        self._send_mode = send_mode
 
-        is_bound = False
-        get_port = lambda: random.randint(40000, 50000)
-        port = get_port()
-        while not is_bound:
-            try:
-                self.__socket.bind((self.__host, port))
-                is_bound = True
-            except socket.error as e:
-                port = get_port
-        self.__port = port
-
-        self.__socket.listen(1)
-
-        self.__process = Thread(target=self.__accept_send_and_close)
-
-    def passive_reply(self):
+    def _communicate(self, client_socket):
         """
-        >>> class D():
-        ...     def __init__(self, host, port):
-        ...         self._DTPServer__host = host
-        ...         self._DTPServer__port = port
-        ...     def passive_reply(self):
-        ...         return DTPServer.passive_reply(self)
-        >>> d = D('193.162.146.4', 194*256+54)
-        >>> reply = d.passive_reply()
-        >>> assert reply[-2:] == chr(13)+chr(10)
-        >>> reply[:-2]
-        '227 Entering Passive Mode (193,162,146,4,194,54)'
+        логика работы с сокетом входящего клиентского подключения
+
+        :type client_socket: socket.socket
         """
-        p1, p2, p3, p4 = map(int, self.__host.split('.'))
 
-        p5, p6 = divmod(self.__port, 256)
-
-        reply = '227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)\r\n' % (p1, p2, p3, p4, p5, p6)
-        return reply
-
-    def __accept_send_and_close(self):
-        client_socket, _ = self.__socket.accept()
-
-        if self.__send_mode:
-            client_socket.sendall(self.__data)
+        if self._send_mode:
+            client_socket.sendall(self._data)
         else:
             in_byte = b'X'
             while len(in_byte):
                 in_byte = client_socket.recv(1)
-                self.__received_data += in_byte
-        client_socket.close()
+                self._received_data += in_byte
 
     def get_port(self):
-        return self.__port
+        return self._port
 
     def get_received_data(self):
-        return self.__received_data
-
-    def start(self):
-        """
-        запускает принятие соединений в новом процессе
-        """
-        self.__process.start()
-
-    def join(self):
-        self.__process.join()
+        return self._received_data
 
 
 class DTPServerTestCase(TestCase):
