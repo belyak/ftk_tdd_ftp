@@ -4,6 +4,8 @@ from unittest.mock import patch
 from client import Client, InvalidReplyFormat
 from line_separator import LINES_SEPARATOR, LINES_SEPARATOR_STR
 
+from tests.dtp_server import DTPServer
+
 
 class EchoSocket():
     def __init__(self, *args, **kwargs):
@@ -19,6 +21,9 @@ class EchoSocket():
 
 
 class TestClient(TestCase):
+    def setUp(self):
+        self.__original_binary_data = b'ABC123UIO*()()*)(KJHJHhjhdsj'*100
+
     def test_get_code_and_text_one_line(self):
         reply = b'220 beastie.tdk.net FTP server (Version 6.00LS) ready.' + LINES_SEPARATOR
         expected_code = 220
@@ -66,3 +71,10 @@ class TestClient(TestCase):
         # noinspection PyProtectedMember
         self.assertRaises(InvalidReplyFormat, client._command, '')
 
+    def test_data_command_download_variation(self):
+
+        #dpt_server = DTPServer()
+
+        client = Client()
+        # noinspection PyProtectedMember
+        # client._command_with_transfer()
