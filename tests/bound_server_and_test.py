@@ -1,4 +1,4 @@
-from multiprocessing import Process, Value
+from multiprocessing import Process, Value, Queue
 import random
 import socket
 import time
@@ -33,6 +33,8 @@ class BoundServer():
 
         self._process = None
         self._timeout = None
+
+        self.ipc_queue = Queue()
 
     def _accept_communicate_and_close(self, *args, **kwargs):
         """
