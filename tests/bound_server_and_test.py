@@ -1,8 +1,11 @@
-import time
-from unittest import TestCase
+from multiprocessing import Process, Value
 import random
 import socket
-from threading import Thread
+import time
+from unittest import TestCase
+
+
+from tests.common import decode_pasv_reply
 
 
 class NotBoundError(Exception):
@@ -13,20 +16,25 @@ class BoundServer():
     """
     сервер, умеющий биндиться на указанный диапазон портов.
     """
-    def __init__(self, host='127.0.0.1', port_from=40000, port_to=50000, auto_bind=True):
+
+    def __init__(self, host=None, port_from=32000, port_to=39000):
         self._socket = socket.socket()
-        self._host = host
+
+        if host is not None:
+            self._host = host
+        else:
+            self._host = socket.gethostbyname(socket.gethostname())
+
         self._bind_ports = (port_from, port_to)
 
-        if auto_bind:
-            self._port = self._bind_socket(port_from, port_to)
-        else:
-            self._port = None
+        self._port = self._bind_socket(port_from, port_to)
 
-        self._process = Thread(target=self._accept_communicate_and_close)
+        print('Server %s' % self.__class__.__name__, ' bound at %s:%s' % (self._host, self._port))
+
+        self._process = None
         self._timeout = None
 
-    def _accept_communicate_and_close(self):
+    def _accept_communicate_and_close(self, *args, **kwargs):
         """
         логика выполняемая после старта сервера в отдельной нити
         """
@@ -34,8 +42,10 @@ class BoundServer():
         self._socket.settimeout(self._timeout)
         try:
             client_socket, _ = self._socket.accept()
+            print(self.__class__.__name__, 'accepted connection', client_socket, _, '( at %s:%s)' % (self._socket.getsockname()))
         except socket.timeout as e:
             raise e
+
         self._communicate(client_socket)
         client_socket.close()
 
@@ -45,9 +55,6 @@ class BoundServer():
         :type client_socket: socket.socket
         """
         raise NotImplementedError
-
-    def bind_socket(self):
-        self._port = self._bind_socket(*self._bind_ports)
 
     def _bind_socket(self, port_from, port_to):
         """
@@ -93,22 +100,32 @@ class BoundServer():
         reply = '227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)\r\n' % (p1, p2, p3, p4, p5, p6)
         return reply.encode() if binary else reply
 
-    def start(self, timeout=10.0):
+    def start(self, timeout=None):
         """
         запускает принятие соединений в новом процессе
         :param timeout; количество секунд, которые сервер ожидает входящего соединения.
         """
         self._timeout = timeout
+        p = Process(target=self._accept_communicate_and_close, kwargs=self.__dict__)
+        self._process = p
         self._process.start()
+        time.sleep(2)
 
     def join(self):
         self._process.join()
+        self._socket.close()
 
     def get_port(self):
         """
         :rtype: int or None
         """
         return self._port
+
+    def get_host(self):
+        """
+        :rtype:
+        """
+        return self._host
 
 
 class TestBoundServer(TestCase):
@@ -123,9 +140,9 @@ class TestBoundServer(TestCase):
                 summary = str(sum(operands))
                 client_socket.sendall(summary.encode())
 
-        sum_server = SumServer(host='127.0.0.1')
-        passive_reply = sum_server.passive_reply()
-        h1, h2, h3, h4, p1, p2 = map(int, passive_reply[passive_reply.find('(') + 1:passive_reply.find(')')].split(','))
+        sum_server = SumServer()
+        passive_reply = sum_server.passive_reply(binary=True)
+        host, port = decode_pasv_reply(passive_reply)
 
         numbers = [2, 4, 1, 0]
         expected_result = str(sum(numbers)).encode()
@@ -134,8 +151,9 @@ class TestBoundServer(TestCase):
             request += ' '
 
         sum_server.start()
+
         s = socket.socket()
-        s.connect((".".join(map(str, [h1, h2, h3, h4])), p1*256+p2))
+        s.connect((host, port))
         s.sendall(request.encode())
         result = s.recv(request_len)
         sum_server.join()
@@ -144,15 +162,15 @@ class TestBoundServer(TestCase):
         self.assertEqual(expected_result, result)
 
     def test_accept_timeout(self):
+        state_initial, state_changed = 10, 50
+        for server_timeout, client_timeout, communication_called, in ((10, 3, state_changed), (2, 5, state_initial)):
 
-        for server_timeout, client_timeout, communication_called, in ((10, 3, True), (2, 5, None    )):
-
-            communication_result = None
+            communication_result = Value('i', state_initial)
 
             class DummyServer(BoundServer):
                 def _communicate(self, client_socket):
                     nonlocal communication_result
-                    communication_result = True
+                    communication_result.value = state_changed
 
             host = '127.0.0.1'
             dummy_server = DummyServer('127.0.0.1')
@@ -160,7 +178,7 @@ class TestBoundServer(TestCase):
 
             def connect_with_timeout():
                 s = socket.socket()
-                print("server started with timout ", server_timeout)
+                print("server started with timeout ", server_timeout)
                 dummy_server.start(server_timeout)
                 print("sleeping for ", client_timeout, "sec.")
                 time.sleep(client_timeout)
@@ -170,78 +188,4 @@ class TestBoundServer(TestCase):
                 s.close()
 
             connect_with_timeout()
-            self.assertEqual(communication_result, communication_called)
-
-
-class DTPServer(BoundServer):
-    """
-    Сервер принимающий соединение и, в зависимости от настроек, принимающий или отправляющий блок данных, после чего
-    закрывающий соединение.
-    """
-    def __init__(self, data, send_mode=True, host='127.0.0.1'):
-        """
-        :type data: bytes
-        :param send_mode: истина, если сервер отправляет данные и ложь если принимает.
-        :type send_mode: bool
-        """
-        super().__init__(host)
-
-        self._data = data
-
-        self._received_data = b''
-
-        self._send_mode = send_mode
-
-    def _communicate(self, client_socket):
-        """
-        логика работы с сокетом входящего клиентского подключения
-
-        :type client_socket: socket.socket
-        """
-
-        if self._send_mode:
-            client_socket.sendall(self._data)
-        else:
-            in_byte = b'X'
-            while len(in_byte):
-                in_byte = client_socket.recv(1)
-                self._received_data += in_byte
-
-    def get_received_data(self):
-        return self._received_data
-
-
-class DTPServerTestCase(TestCase):
-
-    def setUp(self):
-        self.__original_data = b'abcdefghijklmnopqrtuvwxyz!!'*200
-
-    def test_data_upload(self):
-
-        dtp_server = DTPServer(data=self.__original_data, send_mode=False)
-        dtp_server.start()
-
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect(("localhost", dtp_server.get_port()))
-        client_socket.sendall(self.__original_data)
-        client_socket.close()
-        dtp_server.join()
-
-        data_on_server = dtp_server.get_received_data()
-
-        self.assertEqual(self.__original_data, data_on_server)
-
-    def test_data_download(self):
-
-        dtp_server = DTPServer(data=self.__original_data, send_mode=True)
-        dtp_server.start()
-
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect(("localhost", dtp_server.get_port()))
-        received_data = client_socket.recv(len(self.__original_data))
-
-        dtp_server.join()
-
-        client_socket.close()
-
-        self.assertEqual(self.__original_data, received_data)
+            self.assertEqual(communication_result.value, communication_called)
