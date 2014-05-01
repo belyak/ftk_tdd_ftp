@@ -47,6 +47,10 @@ class DTPServer(BoundServer):
     def get_received_data(self):
         return self.ipc_queue.get()
 
+    def join(self, timeout=None):
+        self.ipc_queue.cancel_join_thread()
+        super().join(timeout)
+
 
 class DTPServerTestCase(TestCase):
 
@@ -63,11 +67,10 @@ class DTPServerTestCase(TestCase):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((dtp_server.get_host(), dtp_server.get_port()))
         send_all(client_socket, self.__original_data)
-
-        dtp_server.join()
         client_socket.close()
 
         data_on_server = dtp_server.get_received_data()
+        dtp_server.join()
 
         self.assertEqual(self.__original_data, data_on_server)
 

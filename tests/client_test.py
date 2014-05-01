@@ -4,7 +4,7 @@ from unittest.mock import patch
 from client import Client, InvalidReplyFormat
 from line_separator import LINES_SEPARATOR, LINES_SEPARATOR_STR
 
-from tests.dtp_server import DTPServer
+from tests.dtp_server_and_test import DTPServer
 
 
 class EchoSocket():

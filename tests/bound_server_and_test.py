@@ -32,6 +32,7 @@ class BoundServer():
         print('Server %s' % self.__class__.__name__, ' bound at %s:%s' % (self._host, self._port))
 
         self._process = None
+        """:type: Process"""
         self._timeout = None
 
         self.ipc_queue = Queue()
@@ -113,21 +114,27 @@ class BoundServer():
         self._process.start()
         time.sleep(2)
 
-    def join(self):
-        self._process.join()
+    def join(self, timeout=None):
+        self._process.join(timeout)
         self._socket.close()
 
     def get_port(self):
         """
-        :rtype: int or None
+        :rtype: int
         """
         return self._port
 
     def get_host(self):
         """
-        :rtype:
+        :rtype: str
         """
         return self._host
+
+    def get_host_and_port(self):
+        """
+        :rtype: tuple
+        """
+        return self._host, self._port,
 
 
 class TestBoundServer(TestCase):
