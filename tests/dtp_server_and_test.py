@@ -42,7 +42,7 @@ class DTPServer(BoundServer):
         else:
             self._received_data = receive_all(client_socket, len(self._data))
 
-        self.ipc_queue.put(self._received_data)
+        self.ipc_queue.put(self._received_data if len(self._received_data) else self._data)
 
     def get_received_data(self):
         return self.ipc_queue.get()

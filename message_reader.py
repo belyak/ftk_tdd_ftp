@@ -1,6 +1,11 @@
 from line_separator import LINES_SEPARATOR
 
 
+class IncorrectIncomingFtpControlConnectionData(ValueError):
+    def __init__(self, reply):
+        super().__init__(reply)
+
+
 class MessageReader():
     def __init__(self, socket_object):
         """
@@ -12,7 +17,7 @@ class MessageReader():
         """
         Читает одно сообщение из сокета.
         """
-        first_line = self._read_line()
+        first_line = self.__read_line()
 
         if first_line[3:4] == b' ':
             # однострочный ответ
@@ -22,7 +27,7 @@ class MessageReader():
             result = first_line
             last_line_met = False
             while not last_line_met:
-                line = self._read_line()
+                line = self.__read_line()
                 result += line
 
                 if line[3:4] == b' ':
@@ -34,9 +39,17 @@ class MessageReader():
                         pass
             return result
         else:
-            raise ValueError('Incorrect incoming ftp data!')
+            raise IncorrectIncomingFtpControlConnectionData('Incorrect incoming ftp data!\n%s\n\n' % first_line)
 
-    def _read_line(self):
+    def read_line(self, debug=False):
+        if not debug:
+            return self.__read_line()
+        else:
+            result = self.__read_line()
+            print("MSG RL>>> %s" % result)
+            return result
+
+    def __read_line(self):
         line = self.__s.recv(1)
         while line[-2:] != LINES_SEPARATOR:
             line += self.__s.recv(1)

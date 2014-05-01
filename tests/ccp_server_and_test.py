@@ -11,21 +11,25 @@ class CCPServer(DTPServer):
     """
     Сервер ожидающий полученя команды PASV и отправляющий (либо принимающий) данные по каналу данных
     """
-    def __init__(self, data, send_mode=True, host='127.0.0.1'):
+    def __init__(self, data, send_mode=True, host='127.0.0.1', with_banner=False):
         """
         :type data: bytes
         :param send_mode: истина, если сервер отправляет данные и ложь если принимает.
         :type send_mode: bool
         """
         super().__init__(data, send_mode, host)
+        self.ipc_queue.put(with_banner)
 
     def _communicate(self, client_socket):
         """
         :type client_socket: socket.socket
         """
         message_reader = MessageReader(client_socket)
-        # noinspection PyProtectedMember
-        message = message_reader._read_line()
+        with_banner = self.ipc_queue.get()
+        if with_banner:
+            client_socket.sendall('200 CCPServer ready.\r\n'.encode())
+
+        message = message_reader.read_line()
         if message.decode() != 'PASV\r\n':
             raise ValueError('Incorrect incoming message (`%s` instead of `PASV<cr><lf>`' % message)
 
@@ -35,8 +39,7 @@ class CCPServer(DTPServer):
         data_server.start()
         client_socket.sendall(passive_reply)
 
-        # noinspection PyProtectedMember
-        message = message_reader._read_line()
+        message = message_reader.read_line()
         if not self._send_mode:
             expected_message = 'UPLOAD\r\n'.encode()
         else:
@@ -44,6 +47,12 @@ class CCPServer(DTPServer):
         if message != expected_message:
             raise ValueError('Incorrect incoming message (`%s` instead of `%s<cr><lf>`' % (message,
                                                                                            expected_message[:-2]))
+
+        direction_msg_tpl = "150 Opening binary connection for transfer %s\r\n"
+        direction_msg = 'from server' if self._send_mode else 'from server'
+        direction_msg_complete = (direction_msg_tpl % direction_msg).encode()
+        client_socket.sendall(direction_msg_complete)
+
         self._received_data = data_server.get_received_data()
         data_server.join()
         self.ipc_queue.put(self._received_data)
@@ -70,18 +79,22 @@ class CPPServerTestCase(TestCase):
         data_host, data_port = decode_pasv_reply(passv_reply)
         control_socket.sendall("UPLOAD\r\n".encode())
 
+        upload_confirmation_start = message_reader.read()
+
         data_socket = socket.socket()
         data_socket.connect((data_host, data_port))
         data_socket.sendall(self.__original_data)
 
-        upload_reply = message_reader.read()
+        upload_confirmation_complete = message_reader.read()
 
         ccp_server.join()
 
         data_socket.close()
         control_socket.close()
 
-        self.assertEqual(upload_reply.decode(), '200 OK.\r\n')
+        self.assertEqual(upload_confirmation_start.decode(),
+                         '150 Opening binary connection for transfer from server\r\n')
+        self.assertEqual(upload_confirmation_complete.decode(), '200 OK.\r\n')
 
         self.assertEqual(self.__original_data, ccp_server.get_received_data())
 
@@ -103,14 +116,18 @@ class CPPServerTestCase(TestCase):
         data_socket.connect((data_host, data_port))
         received_data = receive_all(data_socket)
 
-        upload_reply = message_reader.read()
+        transfer_confirmation_start = message_reader.read()
 
         ccp_server.get_received_data()  # освободим очередь, чтобы не получить дедлок процесса
         ccp_server.join()
 
+        transfer_confirmation_complete = message_reader.read()
+
         data_socket.close()
         control_socket.close()
 
-        self.assertEqual(upload_reply.decode(), '200 OK.\r\n')
+        self.assertEqual(transfer_confirmation_start.decode(),
+                         '150 Opening binary connection for transfer from server\r\n')
+        self.assertEqual(transfer_confirmation_complete.decode(), '200 OK.\r\n')
 
         self.assertEqual(self.__original_data, received_data)

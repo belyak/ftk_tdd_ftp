@@ -143,7 +143,7 @@ class TestBoundServer(TestCase):
         request_len = 10
 
         class SumServer(BoundServer):
-            def _communicate(self, client_socket):
+            def _communicate(self, client_socket, *args, **kwargs):
                 data = client_socket.recv(request_len).decode()
                 operands = map(int, data.split('+'))
                 summary = str(sum(operands))

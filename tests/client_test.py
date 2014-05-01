@@ -3,6 +3,8 @@ from unittest.mock import patch
 
 from client import Client, InvalidReplyFormat
 from line_separator import LINES_SEPARATOR, LINES_SEPARATOR_STR
+from message_reader import IncorrectIncomingFtpControlConnectionData
+from tests.ccp_server_and_test import CCPServer
 
 from tests.dtp_server_and_test import DTPServer
 
@@ -69,12 +71,21 @@ class TestClient(TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(rest, 'Two hundreds OK')
         # noinspection PyProtectedMember
-        self.assertRaises(InvalidReplyFormat, client._command, '')
+        self.assertRaises(IncorrectIncomingFtpControlConnectionData, client._command, 'XXX')
 
-    def test_data_command_download_variation(self):
+    def test_data_command_download_operation(self):
+        original_data = b'The red green blue and gray goes here right now!'
 
-        #dpt_server = DTPServer()
+        ccp_server = CCPServer(original_data, True, with_banner=True)
+        host, port = ccp_server.get_host_and_port()
+        ccp_server.start()
 
         client = Client()
+        client.connect(host, port)
         # noinspection PyProtectedMember
-        # client._command_with_transfer()
+        code, rest, data = client._command_with_transfer('DOWNLOAD')
+        print(code, rest)
+
+        ccp_server.get_received_data()
+        ccp_server.join()
+        self.assertEqual(original_data, data)

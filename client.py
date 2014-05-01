@@ -31,7 +31,7 @@ class Client():
         return self.get_code_and_text(raw_message)
 
     def connect(self, host, port):
-        self.__s.connect((HOST, PORT))
+        self.__s.connect((host, port))
         code, data = self._command('')
         self.__server_host, self.__server_port = host, port
         print(code, data)
@@ -86,7 +86,7 @@ class Client():
         """
         if len(text):
             self.__s.sendall(text.encode() + LINES_SEPARATOR)
-        reply = self.receive_all(self.__s)
+        reply = self.__reader.read()
         return self.get_code_and_text(reply)
     
     def _command_with_transfer(self, text, upload=False):
