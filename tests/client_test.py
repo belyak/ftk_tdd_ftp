@@ -89,3 +89,20 @@ class TestClient(TestCase):
         ccp_server.get_received_data()
         ccp_server.join()
         self.assertEqual(original_data, data)
+
+    def test_data_command_upload_operation(self):
+        original_data = b'And my planet rocks!!!'
+
+        ccp_server = CCPServer(original_data, send_mode=False, with_banner=True)
+        host, port = ccp_server.get_host_and_port()
+        ccp_server.start()
+
+        client = Client()
+        client.connect(host, port)
+        # noinspection PyProtectedMember
+        code, rest, data = client._command_with_transfer('UPLOAD', upload=True)
+        print(code, rest)
+
+        ccp_server.get_received_data()
+        ccp_server.join()
+        self.assertEqual(original_data, data)
