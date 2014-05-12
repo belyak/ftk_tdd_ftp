@@ -150,6 +150,7 @@ class Client():
     def _sp_connect(self):
         try:
             self.__sp = Socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.__sp.settimeout(10)  # FIXME: added only to preserve test code blocks
             self.__sp.connect((self.__passive_host, self.__passive_port))
             print('connected data link')        
         except socket.error as e:
