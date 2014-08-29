@@ -9,7 +9,7 @@ from tests.common import receive_all
 
 class CCPServer(DTPServer):
     """
-    Сервер ожидающий полученя команды PASV и отправляющий (либо принимающий) данные по каналу данных
+    Сервер ожидающий получения команды PASV и отправляющий (либо принимающий) данные по каналу данных
     """
     def __init__(self, data, send_mode=True, host='127.0.0.1', with_banner=False):
         """
