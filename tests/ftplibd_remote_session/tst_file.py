@@ -4,9 +4,8 @@ import os
 
 
 class TestFile():
-    _file_size = 1024*1024*2  # 2Mb
 
-    def __init__(self, size=_file_size, debug=False):
+    def __init__(self, size, debug=False):
         self._temp_file = tempfile.NamedTemporaryFile(delete=False)
         self._full_filename = self._temp_file.name
         self._file_path = os.path.dirname(self._full_filename)
@@ -15,12 +14,18 @@ class TestFile():
         if debug:
             print('creating file %s size: %d ' % (self._full_filename, size))
 
-        size_64b = size // 4
-        self._temp_file.file.write(bytes(random.randint(0, 2*64) for _ in range(size_64b)))
+        self._temp_file.file.write(bytes(random.randint(0, 255) for _ in range(size)))
         self._temp_file.close()
+
+        self._file_size = size
 
         if debug:
             print('Complete.')
+
+    def get_content(self):
+        with open(self._temp_file.name, 'rb') as f:
+            content = f.read()
+        return content
 
     def print_info(self):
         print("Created temporary file at %s (size %d)" % (self._full_filename, self._file_size))

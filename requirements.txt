@@ -1,3 +1,4 @@
+pyftpdlib
 coverage
 nose
 ipython

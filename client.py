@@ -57,6 +57,7 @@ class Client(BaseClient):
         code, rest, data = self._command_with_transfer('RETR %s' % filename)
         print(code, rest)
         print(data)
+        return code, rest, data
 
 if __name__ == '__main__':
 
