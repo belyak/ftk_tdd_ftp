@@ -25,7 +25,7 @@ def login(user, password):
 
 @command("open")
 def connect(host, port=21):
-    code, rest = client.connect(host, port)
+    code, rest = client.connect(host, int(port))
     print(code, rest)
 
 @command("close")
@@ -41,15 +41,15 @@ def main():
         cmd = input("> ")
         try:
             if ' ' in cmd:
-                cmd_mnemonic, *args = cmd.split(' ')
+                cmd_mnemonic, *cmd_args = cmd.split(' ')
             else:
                 cmd_mnemonic = cmd
-                args = []
+                cmd_args = []
 
             cmd_routine = _commands[cmd_mnemonic]
 
-            if len(args):
-                cmd_routine(*args)
+            if len(cmd_args):
+                cmd_routine(*cmd_args)
             else:
                 cmd_routine()
 
