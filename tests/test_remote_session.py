@@ -6,7 +6,9 @@
 
 from multiprocessing.context import Process
 from os import unlink
+import os
 from unittest import TestCase
+import uuid
 from client import Client
 
 from tests.ftplibd_remote_session import server
@@ -20,7 +22,10 @@ class TestRemoteSession(TestCase):
 
         self.original_data = self.test_file.get_content()
 
-        tuned_server, self.port = server.get_tuned_server(self.test_file.path)
+        self.ftp_root = self.test_file.path
+        self.remote_filename = uuid.uuid4().hex
+
+        tuned_server, self.port = server.get_tuned_server(self.ftp_root)
 
         def server_func():
             tuned_server.serve_forever()
@@ -40,5 +45,17 @@ class TestRemoteSession(TestCase):
         code, rest, data = client.retr(self.test_file.filename)
 
         self.assertEqual(code, 226)
-        self.assertEqual(self.original_data, data)
+        self.assertTrue(self.original_data == data)
+
+    def test_send_file(self):
+        client = Client()
+        client.connect('localhost', self.port)
+        client.login(settings.ftp_user, settings.ftp_pass)
+
+        client.stor(self.remote_filename, self.original_data)
+
+        with open(os.path.join(self.ftp_root, self.remote_filename), 'rb') as f:
+            stored_file_content = f.read()
+
+        self.assertTrue(self.original_data == stored_file_content)
 

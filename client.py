@@ -59,6 +59,10 @@ class Client(BaseClient):
         print(data)
         return code, rest, data
 
+    def stor(self, filename, data):
+        code, rest, _ = self._command_with_transfer('STOR %s' % filename, upload=True, data=data)
+        return code, rest
+
 if __name__ == '__main__':
 
     HOST = 'ftp.freebsd.org'
