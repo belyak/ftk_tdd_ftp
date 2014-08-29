@@ -35,7 +35,6 @@ class TestClient(TestCase):
 
     def test_data_command_download_operation(self):
         original_data = b'The red green blue and gray goes here right now!'*30
-
         ccp_server = CCPServer(original_data, True, with_banner=True)
         host, port = ccp_server.get_host_and_port()
         ccp_server.start()
@@ -46,7 +45,7 @@ class TestClient(TestCase):
         code, rest, data = client._command_with_transfer('DOWNLOAD')
         print(code, rest)
 
-        ccp_server.get_received_data()
+        data = ccp_server.get_received_data()
         ccp_server.join()
         self.assertTrue(original_data == data)
 

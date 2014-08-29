@@ -5,7 +5,7 @@ import os
 
 class TestFile():
 
-    def __init__(self, size, debug=False):
+    def __init__(self, size, debug=False, random_data=True):
         self._temp_file = tempfile.NamedTemporaryFile(delete=False)
         self._full_filename = self._temp_file.name
         self._file_path = os.path.dirname(self._full_filename)
@@ -14,7 +14,11 @@ class TestFile():
         if debug:
             print('creating file %s size: %d ' % (self._full_filename, size))
 
-        self._temp_file.file.write(bytes(random.randint(0, 255) for _ in range(size)))
+        if random_data:
+            self._temp_file.file.write(bytes(random.randint(0, 255) for _ in range(size)))
+        else:
+            for i in range(size):
+                self._temp_file.file.write(b'\n')
         self._temp_file.close()
 
         self._file_size = size

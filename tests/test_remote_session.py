@@ -33,6 +33,13 @@ class TestRemoteSession(TestCase):
         server_process = Process(target=server_func)
         server_process.start()
 
+    def get_connected_client_in_binary_mode(self):
+        client = Client()
+        client.connect('localhost', self.port)
+        client.login(settings.ftp_user, settings.ftp_pass)
+        client.type('I')  # Binary mode ('I'mage)
+        return client
+
     def tearDown(self):
         unlink(self.test_file.full_filename)
 
@@ -41,9 +48,7 @@ class TestRemoteSession(TestCase):
         тест на получение заранее сгенерированных и сохраненных на диске данных клиентом через подключение
         к локальному серверу.
         """
-        client = Client()
-        client.connect('localhost', self.port)
-        client.login(settings.ftp_user, settings.ftp_pass)
+        client = self.get_connected_client_in_binary_mode()
         code, rest, data = client.retr(self.test_file.filename)
 
         self.assertEqual(code, 226)
@@ -54,10 +59,7 @@ class TestRemoteSession(TestCase):
         Тест на отправку файла клиентом на локальный сервер и сравнение содержимого файла на диске
         с отправленными данными
         """
-        client = Client()
-        client.connect('localhost', self.port)
-        client.login(settings.ftp_user, settings.ftp_pass)
-
+        client = self.get_connected_client_in_binary_mode()
         client.stor(self.remote_filename, self.original_data)
 
         with open(os.path.join(self.ftp_root, self.remote_filename), 'rb') as f:

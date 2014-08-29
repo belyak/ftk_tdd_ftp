@@ -63,6 +63,30 @@ class Client(BaseClient):
         code, rest, _ = self._command_with_transfer('STOR %s' % filename, upload=True, data=data)
         return code, rest
 
+    def type(self, type_character, second_type_character=None):
+        """
+        Type-character can be any of:
+
+        A - ASCII text
+        E - EBCDIC text
+        I - image (binary data)
+        L - local format
+        F
+        or A and E, the second-type-character specifies how the text should be interpreted. It can be:
+
+        N - Non-print (not destined for printing). This is the default if second-type-character is omitted.
+        T - Telnet format control (<CR>, <FF>, etc.)
+        C - ASA Carriage Control
+
+        For L, the second-type-character specifies the number of bits per byte on the local system, and may not be omitted.
+        """
+        command_args = '%s' % type_character if second_type_character is None else "%s %s" % (type_character,
+                                                                                              second_type_character)
+
+        code, rest = self._command('TYPE %s' % command_args)
+        print(code, rest)
+
+
 if __name__ == '__main__':
 
     HOST = 'ftp.freebsd.org'
