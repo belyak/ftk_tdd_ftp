@@ -17,6 +17,7 @@ from tests.ftplibd_remote_session import settings
 
 
 class TestRemoteSession(TestCase):
+
     def setUp(self):
         self.test_file = TestFile(settings.test_file_size)
 
@@ -29,7 +30,7 @@ class TestRemoteSession(TestCase):
 
         def server_func():
             tuned_server.serve_forever()
-
+        #FIXME: отановить поток по окончанию теста!
         server_process = Process(target=server_func)
         server_process.start()
 
