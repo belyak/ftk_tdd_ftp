@@ -9,6 +9,13 @@ from message_reader import MessageReader
 CODE_INVALID_REPLY_FORMAT = -1
 
 
+class SPIException(BaseException):
+    def __init__(self, code, rest):
+        super().__init__()
+        self.code = code
+        self.rest = rest
+
+
 class Socket(socket.socket):
     pass
 
@@ -38,6 +45,7 @@ class BaseClient():
         code, data = self._command('')
         self.__server_host, self.__server_port = host, port
         print(code, data)
+        return code, data
 
     def _command(self, text):
         """
@@ -96,6 +104,10 @@ class BaseClient():
         Выполняет команду PASV и сохраняет полученные в ответе адрес хоста и порт
         """
         code, rest = self._command('PASV')
+
+        if code == 530:  # login required
+            raise SPIException(code, rest)
+
         print(code, rest)
         address_str = rest.split(' ')[-1]
         print('DEBUG: adr str: `%s`' % address_str)
