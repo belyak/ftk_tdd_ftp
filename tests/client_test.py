@@ -34,7 +34,7 @@ class TestClient(TestCase):
         self.assertRaises(IncorrectIncomingFtpControlConnectionData, client._command, 'XXX')
 
     def test_data_command_download_operation(self):
-        original_data = b'The red green blue and gray goes here right now!'
+        original_data = b'The red green blue and gray goes here right now!'*30
 
         ccp_server = CCPServer(original_data, True, with_banner=True)
         host, port = ccp_server.get_host_and_port()
@@ -48,7 +48,7 @@ class TestClient(TestCase):
 
         ccp_server.get_received_data()
         ccp_server.join()
-        self.assertEqual(original_data, data)
+        self.assertTrue(original_data == data)
 
     def test_data_command_upload_operation(self):
         original_data = b'And my planet rocks!!!'

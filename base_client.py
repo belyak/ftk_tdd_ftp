@@ -141,8 +141,8 @@ class BaseClient():
         portion_size = 1024
         all_data = data = socket_object.recv(portion_size)
         while len(data) == portion_size:
-            all_data += data
             data = socket_object.recv(portion_size)
+            all_data += data
         return all_data
 
     def __receive_data(self):

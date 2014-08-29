@@ -37,8 +37,10 @@ class TestRemoteSession(TestCase):
         unlink(self.test_file.full_filename)
 
     def test_receive_file(self):
-        print('HEHE')
-        a = 21
+        """
+        тест на получение заранее сгенерированных и сохраненных на диске данных клиентом через подключение
+        к локальному серверу.
+        """
         client = Client()
         client.connect('localhost', self.port)
         client.login(settings.ftp_user, settings.ftp_pass)
@@ -48,6 +50,10 @@ class TestRemoteSession(TestCase):
         self.assertTrue(self.original_data == data)
 
     def test_send_file(self):
+        """
+        Тест на отправку файла клиентом на локальный сервер и сравнение содержимого файла на диске
+        с отправленными данными
+        """
         client = Client()
         client.connect('localhost', self.port)
         client.login(settings.ftp_user, settings.ftp_pass)
