@@ -1,5 +1,6 @@
 from unittest import TestCase
 from decode_reply import decode
+from invalid_reply import InvalidReplyFormat
 from line_separator import LINES_SEPARATOR_STR, LINES_SEPARATOR
 
 
@@ -39,3 +40,22 @@ class DecodeTest(TestCase):
 
         self.assertEqual(expected_code, code)
         self.assertEqual(expected_text, text)
+
+    def test_incorrect_unicode_data(self):
+        reply = b'Correct\xd0'
+        self.assertRaises(InvalidReplyFormat, decode, reply)
+
+    def test_incorrect_single_line(self):
+        reply = b'22A WOW!' + LINES_SEPARATOR
+        self.assertRaises(InvalidReplyFormat, decode, reply)
+
+    def test_incorrect_multi_line_different_codes(self):
+        reply = LINES_SEPARATOR_STR.join([
+            '123-AAAA',
+            '321 BBBB!' + LINES_SEPARATOR_STR
+        ]).encode()
+        self.assertRaises(InvalidReplyFormat, decode, reply)
+
+    def test_incorrect_empty(self):
+        reply = b''
+        self.assertRaises(InvalidReplyFormat, decode, reply)
