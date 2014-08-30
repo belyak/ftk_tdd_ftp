@@ -1,8 +1,8 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from base_client import BaseClient
-from message_reader import IncorrectIncomingFtpControlConnectionData
+from ftp_client.base_client import BaseClient
+from ftp_client.message_reader import IncorrectIncomingFtpControlConnectionData
 from tests.ccp_server_and_test import CCPServer
 
 
@@ -23,7 +23,7 @@ class TestClient(TestCase):
     def setUp(self):
         self.__original_binary_data = b'ABC123UIO*()()*)(KJHJHhjhdsj'*100
 
-    @patch('base_client.Socket', new=EchoSocket)
+    @patch('ftp_client.base_client.Socket', new=EchoSocket)
     def test_command(self):
         client = BaseClient()
         # noinspection PyProtectedMember

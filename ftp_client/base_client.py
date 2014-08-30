@@ -1,9 +1,9 @@
 import socket
 import re
 
-from decode_reply import decode
-from line_separator import LINES_SEPARATOR
-from message_reader import MessageReader
+from ftp_client.decode_reply import decode
+from ftp_client.line_separator import LINES_SEPARATOR
+from ftp_client.message_reader import MessageReader
 
 
 CODE_INVALID_REPLY_FORMAT = -1

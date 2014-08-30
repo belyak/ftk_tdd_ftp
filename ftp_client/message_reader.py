@@ -1,4 +1,4 @@
-from line_separator import LINES_SEPARATOR
+from ftp_client.line_separator import LINES_SEPARATOR
 
 
 class IncorrectIncomingFtpControlConnectionData(ValueError):

@@ -1,5 +1,5 @@
-from invalid_reply import InvalidReplyFormat
-from line_separator import LINES_SEPARATOR_STR
+from ftp_client.invalid_reply import InvalidReplyFormat
+from ftp_client.line_separator import LINES_SEPARATOR_STR
 
 
 def decode(reply):

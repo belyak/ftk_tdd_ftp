@@ -1,4 +1,3 @@
-from multiprocessing.context import Process
 import socket
 
 from pyftpdlib.authorizers import DummyAuthorizer

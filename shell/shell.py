@@ -1,4 +1,4 @@
-from base_client import SPIException
+from ftp_client.base_client import SPIException
 from shell.commands import get_routine, MnemonicNotFound
 
 

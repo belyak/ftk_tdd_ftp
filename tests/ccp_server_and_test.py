@@ -1,7 +1,7 @@
 from unittest import TestCase
 import socket
-from message_reader import MessageReader
-from tests.bound_server_and_test import BoundServer
+
+from ftp_client.message_reader import MessageReader
 from tests.common import decode_pasv_reply
 from tests.dtp_server_and_test import DTPServer
 from tests.common import receive_all

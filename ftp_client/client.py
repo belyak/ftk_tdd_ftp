@@ -1,4 +1,4 @@
-from base_client import BaseClient
+from ftp_client.base_client import BaseClient
 
 
 def command(cmd, with_transfer=False, has_argument=False):

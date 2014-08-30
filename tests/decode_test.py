@@ -1,7 +1,8 @@
 from unittest import TestCase
-from decode_reply import decode
-from invalid_reply import InvalidReplyFormat
-from line_separator import LINES_SEPARATOR_STR, LINES_SEPARATOR
+
+from ftp_client.decode_reply import decode
+from ftp_client.invalid_reply import InvalidReplyFormat
+from ftp_client.line_separator import LINES_SEPARATOR_STR, LINES_SEPARATOR
 
 
 class DecodeTest(TestCase):

@@ -10,8 +10,8 @@ import os
 from unittest import TestCase
 import uuid
 import signal
-from client import Client
 
+from ftp_client.client import Client
 from tests.ftplibd_remote_session import server
 from tests.ftplibd_remote_session.tst_file import TestFile
 from tests.ftplibd_remote_session import settings

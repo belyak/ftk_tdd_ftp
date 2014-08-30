@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from message_reader import MessageReader
+from ftp_client.message_reader import MessageReader
 
 SIMPLE_MSG_1 = b"150 Opening ASCII mode data connection for '/bin/ls'.\r\n"
 SIMPLE_MSG_2 = b"226 Transfer complete.\r\n"

@@ -1,4 +1,4 @@
-from client import Client
+from ftp_client.client import Client
 
 _commands = {}
 
