@@ -23,7 +23,7 @@ def login(user, password):
     code, rest = client.login(user, password)
     print(code, rest)
 
-@command("open")
+@command('open')
 def connect(host, port=21):
     code, rest = client.connect(host, int(port))
     print(code, rest)

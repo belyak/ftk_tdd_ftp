@@ -35,7 +35,6 @@ class BaseClient():
 
         self.__pasv_addr_regex = re.compile(r'\(([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9]+),([0-9]+)\)')
 
-
     def __read_code_and_text(self):
         raw_message = self.__reader.read()
         return decode(raw_message)
