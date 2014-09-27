@@ -44,6 +44,7 @@ class Client(BaseClient):
     def cwd(self, remote_dir):
         code, rest = self._command('CWD %s' % remote_dir)
         print(code, rest)
+        return code, rest
 
     def pwd(self):
         code, rest = self._command('PWD')

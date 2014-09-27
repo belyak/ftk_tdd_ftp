@@ -41,6 +41,11 @@ def connect(host, port=21):
     code, rest = client.connect(host, int(port))
     print(code, rest)
 
+@command("cd")
+def cd(remote_dir):
+    code, rest = client.cwd(remote_dir)
+    print(code, rest)
+
 @command(keyword='help', synonyms=['?'])
 def print_help(*args, **kwargs):
     print("Available commands: ", ', '.join(sorted(_commands.keys())))

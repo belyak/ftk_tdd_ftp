@@ -1,4 +1,4 @@
-import socket
+﻿import socket
 import re
 
 from ftp_client.decode_reply import decode
@@ -97,6 +97,7 @@ class BaseClient():
         print(code, rest)
         code, rest = self._command('PASS %s' % password)
         print(code, rest)
+        return code, rest
         
     def passive_mode(self):
         """
